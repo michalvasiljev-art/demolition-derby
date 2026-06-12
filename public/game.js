@@ -581,9 +581,9 @@ function updateGameState(state) {
 
     // Деформация кузова по мере урона
     const dmg = 1 - p.hp / MAX_HP;
-    car.inner.scale.y = 2 * Math.max(0.45, 1 - dmg * 0.50);
-    car.inner.scale.x = 2 * (1 + dmg * 0.30);
-    car.inner.scale.z = 2 * (1 + dmg * 0.20);
+    car.inner.scale.y = (4/3) * Math.max(0.45, 1 - dmg * 0.50);
+    car.inner.scale.x = (4/3) * (1 + dmg * 0.30);
+    car.inner.scale.z = (4/3) * (1 + dmg * 0.20);
 
     // Удар → импульс опрокидывания
     if (p.hp < car.prevHp) {

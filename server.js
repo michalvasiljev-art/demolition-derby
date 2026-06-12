@@ -9,8 +9,8 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const ARENA_W = 1600;
-const ARENA_H = 900;
+const ARENA_W = 2000;
+const ARENA_H = 1200;
 const CAR_RADIUS = 28;
 const MAX_HP = 100;
 const MAX_SPEED = 260;
@@ -20,19 +20,24 @@ const FRICTION_PER_SEC = 0.15;
 
 const COLOR_NAMES = ['#ff4444', '#4488ff', '#44dd44', '#ffcc00'];
 const SPAWN = [
-  { x: 130, y: 130, angle: Math.PI * 0.25 },
-  { x: 1470, y: 770, angle: Math.PI * 1.25 },
-  { x: 1470, y: 130, angle: Math.PI * 0.75 },
-  { x: 130, y: 770, angle: Math.PI * 1.75 },
+  { x: 80,   y: 80,   angle: Math.PI * 0.25 },
+  { x: 1920, y: 1120, angle: Math.PI * 1.25 },
+  { x: 1920, y: 80,   angle: Math.PI * 0.75 },
+  { x: 80,   y: 1120, angle: Math.PI * 1.75 },
 ];
 
-// Прямоугольные препятствия (здания) — cx/cy = центр, hw/hd = полуразмеры
+// Сетка 4×2 кварталов. Дороги: ширина 160. Кварталы: 300×360.
+// Колонки x: [160-460], [620-920], [1080-1380], [1540-1840]
+// Строки  z: [160-520], [680-1040]
 const OBSTACLES = [
-  { x: 390,  y: 190, hw: 210, hd: 140 }, // TL квартал
-  { x: 1210, y: 190, hw: 210, hd: 140 }, // TR квартал
-  { x: 390,  y: 710, hw: 210, hd: 140 }, // BL квартал
-  { x: 1210, y: 710, hw: 210, hd: 140 }, // BR квартал
-  { x: 800,  y: 450, hw: 90,  hd: 90  }, // центральный блок
+  { x: 310,  y: 340,  hw: 115, hd: 145 },
+  { x: 770,  y: 340,  hw: 115, hd: 145 },
+  { x: 1230, y: 340,  hw: 115, hd: 145 },
+  { x: 1690, y: 340,  hw: 115, hd: 145 },
+  { x: 310,  y: 860,  hw: 115, hd: 145 },
+  { x: 770,  y: 860,  hw: 115, hd: 145 },
+  { x: 1230, y: 860,  hw: 115, hd: 145 },
+  { x: 1690, y: 860,  hw: 115, hd: 145 },
 ];
 
 const BOT_IDS = ['bot_0', 'bot_1', 'bot_2', 'bot_3'];

@@ -1,6 +1,6 @@
 // Three.js Demolition Derby 3D Client
 
-const ARENA_W = 1600, ARENA_H = 900, MAX_HP = 100;
+const ARENA_W = 2000, ARENA_H = 1200, MAX_HP = 100;
 const PLAYER_NAMES   = ['Красный', 'Синий', 'Зелёный', 'Жёлтый'];
 const CAR_COLORS     = [0xff3333, 0x2277ff, 0x33cc33, 0xffcc00];
 const CAR_COLOR_STRS = ['#ff5555', '#4499ff', '#55ee55', '#ffdd00'];
@@ -35,10 +35,10 @@ window.addEventListener('resize', () => {
 // ── Сцена и камера ───────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.FogExp2(0x87ceeb, 0.000038);
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.000028);
 
-const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 1, 6000);
-camera.position.set(ARENA_W / 2, 1250, ARENA_H / 2 + 750);
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 1, 8000);
+camera.position.set(ARENA_W / 2, 1900, ARENA_H / 2 + 1100);
 camera.lookAt(ARENA_W / 2, 0, ARENA_H / 2);
 
 // ── Освещение ────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(ARENA_W / 2 + 700, 1000, -500);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -400, right: ARENA_W + 400, top: 400, bottom: -ARENA_H - 400, near: 100, far: 2800 });
+Object.assign(sun.shadow.camera, { left: -400, right: ARENA_W + 400, top: 400, bottom: -ARENA_H - 400, near: 100, far: 4500 });
 scene.add(sun);
 const fill = new THREE.DirectionalLight(0x4488bb, 0.35);
 fill.position.set(-300, 500, ARENA_H + 300);
@@ -74,6 +74,10 @@ const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
 const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
 const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
 
+// Сетка города: 4 колонки × 2 строки зданий
+// Дороги шириной 160. Кварталы 300×360.
+// Колонки x: 0-160 | 160-460 | 460-620 | 620-920 | 920-1080 | 1080-1380 | 1380-1540 | 1540-1840 | 1840-2000
+// Строки  z: 0-160 | 160-520 | 520-680 | 680-1040 | 1040-1200
 // ── Городская карта ───────────────────────────────────────────────────────────
 {
   const winMat  = new THREE.MeshLambertMaterial({ color: 0xffeebb, emissive: 0xffcc44, emissiveIntensity: 0.3 });
@@ -81,6 +85,10 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
   const curbMat = lMat(0xbbbbbb);
   const whiteM  = lMat(0xdddddd);
   const yellowM = lMat(0xffcc00);
+  // Вертикальные дороги (центры): 80, 540, 1000, 1460, 1920
+  const VR = [80, 540, 1000, 1460, 1920];
+  // Горизонтальные дороги (центры): 80, 600, 1120
+  const HR = [80, 600, 1120];
 
   // Здание с окнами (все 4 стороны)
   const makeBuilding = (cx, cz, w, h, d, wallC) => {
@@ -121,77 +129,76 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
   };
 
   // ── Асфальт ──
-  const flr = _box(6000, 1, 6000, lMat(0x191919), ARENA_W/2, -0.5, ARENA_H/2);
+  const flr = _box(7000, 1, 7000, lMat(0x191919), ARENA_W/2, -0.5, ARENA_H/2);
   flr.receiveShadow = true;
   scene.add(flr);
 
-  // ── Тротуары вдоль зданий ──
-  const swMat = lMat(0x686868);
-  // Вокруг TL и BL (x: 0–600)
-  scene.add(_box(600, 1.5, 30, swMat, 300, 0, 330));   // юг TL блока
-  scene.add(_box(600, 1.5, 30, swMat, 300, 0, 570));   // север BL блока
-  scene.add(_box(30, 1.5, 660, swMat, 600, 0, 450));   // восток левых блоков
-  // Вокруг TR и BR (x: 1000–1600)
-  scene.add(_box(600, 1.5, 30, swMat, 1300, 0, 330));
-  scene.add(_box(600, 1.5, 30, swMat, 1300, 0, 570));
-  scene.add(_box(30, 1.5, 660, swMat, 1000, 0, 450));
-  // Центральный блок
-  scene.add(_box(250, 1.5, 30, swMat, 800, 0, 360));
-  scene.add(_box(250, 1.5, 30, swMat, 800, 0, 540));
-  scene.add(_box(30, 1.5, 150, swMat, 715, 0, 450));
-  scene.add(_box(30, 1.5, 150, swMat, 885, 0, 450));
+  // ── Тротуары вдоль каждого квартала ──
+  const swMat = lMat(0x636363);
+  const bx = [160, 620, 1080, 1540]; // левые края кварталов
+  const bz = [160, 680];             // верхние края кварталов
+  const bW = 300, bH = 360;
+  bx.forEach(x => bz.forEach(z => {
+    const cx = x + bW/2, cz = z + bH/2;
+    scene.add(_box(bW+50, 1.5, 30, swMat, cx, 0, z - 15));       // сев.тротуар
+    scene.add(_box(bW+50, 1.5, 30, swMat, cx, 0, z + bH + 15));  // юж.тротуар
+    scene.add(_box(30, 1.5, bH+50, swMat, x - 15, 0, cz));       // зап.тротуар
+    scene.add(_box(30, 1.5, bH+50, swMat, x + bW + 15, 0, cz));  // вост.тротуар
+  }));
 
-  // ── Бордюры ──
-  [[600, 6, 300, 330], [600, 6, 300, 570],
-   [6, 660, 600, 450], [600, 6, 1300, 330],
-   [600, 6, 1300, 570],[6, 660, 1000, 450]
-  ].forEach(([w,d,x,z]) => scene.add(_box(w, 9, d, curbMat, x, 4, z)));
+  // ── Бордюры вдоль тротуаров ──
+  bx.forEach(x => bz.forEach(z => {
+    const cx = x + bW/2, cz = z + bH/2;
+    scene.add(_box(bW+8, 9, 6, curbMat, cx, 4, z));
+    scene.add(_box(bW+8, 9, 6, curbMat, cx, 4, z + bH));
+    scene.add(_box(6, 9, bH+8, curbMat, x, 4, cz));
+    scene.add(_box(6, 9, bH+8, curbMat, x + bW, 4, cz));
+  }));
 
   // ── Дорожная разметка ──
-  // Горизонтальная дорога z=330-570 (ширина 240)
-  for (let x = 50; x < ARENA_W-30; x += 160)
-    scene.add(_box(90, 1.6, 5, whiteM, x, 0, 450));
-  // Вертикальная дорога x=600-1000 (ширина 400)
-  for (let z = 50; z < 330; z += 140)
-    scene.add(_box(5, 1.6, 80, whiteM, 800, 0, z));
-  for (let z = 570; z < ARENA_H-30; z += 140)
-    scene.add(_box(5, 1.6, 80, whiteM, 800, 0, z));
-  // Жёлтые разделительные
-  scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, 330));
-  scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, 570));
-  scene.add(_box(4, 1.6, 330, yellowM, 600, 0, 165));
-  scene.add(_box(4, 1.6, 330, yellowM, 1000, 0, 165));
-  scene.add(_box(4, 1.6, 330, yellowM, 600, 0, 735));
-  scene.add(_box(4, 1.6, 330, yellowM, 1000, 0, 735));
+  // Пунктир на горизонтальных дорогах (z=80, 600, 1120)
+  HR.forEach(z => {
+    for (let x = 50; x < ARENA_W - 30; x += 150)
+      scene.add(_box(90, 1.6, 5, whiteM, x, 0, z));
+    scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, z - 35));
+    scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, z + 35));
+  });
+  // Пунктир на вертикальных дорогах (x=80,540,1000,1460,1920)
+  VR.forEach(x => {
+    for (let z = 50; z < ARENA_H - 30; z += 150)
+      scene.add(_box(5, 1.6, 90, whiteM, x, 0, z));
+    scene.add(_box(4, 1.6, ARENA_H, yellowM, x - 35, 0, ARENA_H/2));
+    scene.add(_box(4, 1.6, ARENA_H, yellowM, x + 35, 0, ARENA_H/2));
+  });
 
-  // ── ГЛАВНЫЕ ЗДАНИЯ (совпадают с физическими препятствиями сервера) ──
-  makeBuilding(390,  190, 420, 200, 280, 0x8b6a4a);  // TL
-  makeBuilding(1210, 190, 420, 230, 280, 0x5a6a7a);  // TR
-  makeBuilding(390,  710, 420, 180, 280, 0x6a7a5a);  // BL
-  makeBuilding(1210, 710, 420, 210, 280, 0x8a5a5a);  // BR
-  makeBuilding(800,  450, 180, 110, 180, 0x888888);  // центр
+  // ── 8 ЗДАНИЙ — сетка 4×2 (физика совпадает с сервером) ──
+  const blockColors = [
+    0x8b6a4a, 0x5a6a7a, 0x7a5a6a, 0x6a7a5a,
+    0x7a6a5a, 0x5a7a8a, 0x8a5a6a, 0x6a8a5a,
+  ];
+  const blockHeights = [200, 240, 175, 220, 185, 260, 195, 215];
+  let bi = 0;
+  bx.forEach(x => bz.forEach(z => {
+    makeBuilding(x + bW/2, z + bH/2, bW - 60, blockHeights[bi], bH - 60, blockColors[bi]);
+    bi++;
+  }));
 
-  // ── Фонари вдоль улиц ──
-  [
-    [630, 310], [800, 310], [970, 310],
-    [630, 590], [800, 590], [970, 590],
-    [180, 350], [180, 450], [180, 550],
-    [1420, 350],[1420, 450],[1420, 550],
-    [390, 50],  [800, 50],  [1210, 50],
-    [390, 850], [800, 850], [1210, 850],
-  ].forEach(([x, z]) => makeLamp(x, z));
+  // ── Фонари на всех пересечениях ──
+  VR.forEach(x => HR.forEach(z => makeLamp(x, z)));
+  // Фонари вдоль дорог (между перекрёстками)
+  VR.forEach(x => { makeLamp(x, 340); makeLamp(x, 860); });
+  HR.forEach(z => { makeLamp(310, z); makeLamp(770, z); makeLamp(1230, z); makeLamp(1690, z); });
 
-  // ── Задние здания (фон за стенами) ──
+  // ── Фоновые здания за стенами ──
   const bg = (cx,cz,w,h,d,c) => makeBuilding(cx,cz,w,h,d,c);
-  bg(155, -85, 240, 210, 110, 0x9a7a5a); bg(490, -80, 200, 270, 100, 0x5a6a8a);
-  bg(800, -95, 190, 350, 120, 0xa09070); bg(1110,-80, 210, 250, 100, 0x7a6a9a);
-  bg(1440,-85, 250, 190, 110, 0x9a4a4a);
-  bg(200, ARENA_H+85, 220,160,110, 0x5a8a6a); bg(600,ARENA_H+80,200,200,100, 0x7a9a5a);
-  bg(1000,ARENA_H+85,210,190,110, 0x5a5a9a); bg(1400,ARENA_H+82,230,150,110, 0x4a8a8a);
-  bg(-90, 200, 110,240,270, 0x7a6a5a); bg(-85, 660, 100,190,230, 0x5a7a6a);
-  bg(ARENA_W+90,200,110,260,270, 0x9a5a5a); bg(ARENA_W+85,660,100,210,230, 0x6a9a5a);
-  bg(-90,-90,190,300,190, 0x9a5a4a); bg(ARENA_W+90,-90,190,275,190, 0x4a5a9a);
-  bg(-90,ARENA_H+90,190,235,190, 0x4a9a5a); bg(ARENA_W+90,ARENA_H+90,190,255,190, 0x9a4a5a);
+  [200,540,1000,1460,1800].forEach((x,i) =>
+    bg(x, -90, 220+i*10, 180+i*30, 110, [0x9a7a5a,0x5a6a8a,0xa09070,0x7a6a9a,0x9a4a4a][i]));
+  [200,540,1000,1460,1800].forEach((x,i) =>
+    bg(x, ARENA_H+90, 210+i*8, 160+i*20, 110, [0x5a8a6a,0x7a9a5a,0x5a5a9a,0x4a8a8a,0x6a5a9a][i]));
+  [200,700,1000].forEach((z,i) => bg(-90, z, 110, 220+i*30, 240+i*20, [0x7a6a5a,0x5a7a6a,0x8a6a5a][i]));
+  [200,700,1000].forEach((z,i) => bg(ARENA_W+90, z, 110, 240+i*25, 240+i*20, [0x9a5a5a,0x6a9a5a,0x5a6a9a][i]));
+  bg(-90,-90,190,310,190,0x9a5a4a); bg(ARENA_W+90,-90,190,280,190,0x4a5a9a);
+  bg(-90,ARENA_H+90,190,240,190,0x4a9a5a); bg(ARENA_W+90,ARENA_H+90,190,260,190,0x9a4a5a);
 
   // ── Периметральные стены-барьеры ──
   const wallH = 40, wallT = 22;

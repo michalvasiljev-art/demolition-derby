@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demolition Derby 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+    canvas { display: block; }
+
+    #overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100; color: white;
+    }
+    #overlay h1 {
+      font-size: 56px; color: #ff6600;
+      text-shadow: 0 0 20px #ff4400, 2px 2px #000;
+      letter-spacing: 4px;
+    }
+    #overlay p { font-size: 20px; margin-top: 20px; color: #ccc; }
+    #overlay .controls {
+      margin-top: 30px; font-size: 15px;
+      color: #888; text-align: center; line-height: 1.8;
+    }
+    #overlay.hidden { display: none; }
+
+    #statusBar {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-size: 17px; font-weight: bold;
+      text-shadow: 0 0 6px #000, 1px 1px #000;
+      pointer-events: none; z-index: 50;
+    }
+    #winText {
+      position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 72px; font-weight: bold;
+      text-shadow: 0 0 30px currentColor, 3px 3px #000;
+      pointer-events: none; z-index: 50;
+    }
+    #countdownText {
+      position: fixed; top: 55%; left: 50%; transform: translateX(-50%);
+      font-size: 28px; color: #fff;
+      text-shadow: 2px 2px #000;
+      pointer-events: none; z-index: 50; display: none;
+    }
+    #turboIndicator {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      font-size: 22px; font-weight: bold; color: #ff8800;
+      text-shadow: 0 0 12px #ff4400, 2px 2px #000;
+      pointer-events: none; z-index: 50;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #turboIndicator.active { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <h1>DEMOLITION DERBY 3D</h1>
+    <p id="overlayMsg">Подключение к серверу...</p>
+    <div class="controls">
+      Управление: <b>WASD</b> или <b>Стрелки</b><br>
+      Двойное нажатие вперёд — ТУРБО<br>
+      Максимум 4 игрока
+    </div>
+  </div>
+
+  <div id="statusBar"></div>
+  <div id="winText"></div>
+  <div id="countdownText"></div>
+  <div id="turboIndicator">⚡ ТУРБО</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/three.min.js"></script>
+  <script src="sounds.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

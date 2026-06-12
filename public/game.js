@@ -493,7 +493,7 @@ function spawnCarDebris(x, z, carIdx) {
 
   const wheelCount = (carIdx === 1 || carIdx === 3) ? 6 : 4;
   for (let i = 0; i < wheelCount; i++)
-    addPart(new THREE.CylinderGeometry(7, 7, 8, 14), 0x111111, false, 7, 190, 170, 310);
+    addPart(new THREE.CylinderGeometry(7, 7, 8, 14), color, false, 7, 190, 170, 310);
 
   for (let i = 0; i < 4; i++)
     addPart(new THREE.BoxGeometry(16+Math.random()*22, 5, 10+Math.random()*16), color, false, 2.5, 230, 200, 330);
@@ -501,15 +501,15 @@ function spawnCarDebris(x, z, carIdx) {
   addPart(new THREE.BoxGeometry(30, 10, 22), color, false, 5, 185, 230, 350);
 
   for (let i = 0; i < 2; i++)
-    addPart(new THREE.BoxGeometry(7, 8, 30), 0x222222, false, 4, 165, 155, 275);
+    addPart(new THREE.BoxGeometry(7, 8, 30), color, false, 4, 165, 155, 275);
 
   for (let i = 0; i < 3; i++)
-    addPart(new THREE.BoxGeometry(13, 2, 11), 0x88aacc, true, 1, 200, 185, 305);
+    addPart(new THREE.BoxGeometry(13, 2, 11), color, true, 1, 200, 185, 305);
 
-  addPart(new THREE.BoxGeometry(15, 14, 15), 0x444444, false, 7, 145, 150, 240);
+  addPart(new THREE.BoxGeometry(15, 14, 15), color, false, 7, 145, 150, 240);
 
   for (let i = 0; i < 3; i++)
-    addPart(new THREE.BoxGeometry(8+Math.random()*8, 3, 6+Math.random()*8), 0x333333, false, 1.5, 175, 140, 260);
+    addPart(new THREE.BoxGeometry(8+Math.random()*8, 3, 6+Math.random()*8), color, false, 1.5, 175, 140, 260);
 }
 
 function spawnExhaustFlame(x, z, angle) {

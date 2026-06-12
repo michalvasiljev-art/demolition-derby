@@ -85,8 +85,8 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
   const curbMat = lMat(0xbbbbbb);
   const whiteM  = lMat(0xdddddd);
   const yellowM = lMat(0xffcc00);
-  // Вертикальные дороги (центры): 80, 540, 1000, 1460, 1920
-  const VR = [80, 540, 1000, 1460, 1920];
+  // Вертикальные дороги (центры): 80, 520, 1000, 1480, 1920
+  const VR = [80, 520, 1000, 1480, 1920];
   // Горизонтальные дороги (центры): 80, 600, 1120
   const HR = [80, 600, 1120];
 
@@ -135,9 +135,9 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
 
   // ── Тротуары вдоль каждого квартала ──
   const swMat = lMat(0x636363);
-  const bx = [160, 620, 1080, 1540]; // левые края кварталов
-  const bz = [160, 680];             // верхние края кварталов
-  const bW = 300, bH = 360;
+  const bx = [160, 640, 1120, 1600]; // левые края кварталов
+  const bz = [160, 720];             // верхние края кварталов
+  const bW = 240, bH = 320;
   bx.forEach(x => bz.forEach(z => {
     const cx = x + bW/2, cz = z + bH/2;
     scene.add(_box(bW+50, 1.5, 30, swMat, cx, 0, z - 15));       // сев.тротуар
@@ -187,7 +187,7 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
   VR.forEach(x => HR.forEach(z => makeLamp(x, z)));
   // Фонари вдоль дорог (между перекрёстками)
   VR.forEach(x => { makeLamp(x, 340); makeLamp(x, 860); });
-  HR.forEach(z => { makeLamp(310, z); makeLamp(770, z); makeLamp(1230, z); makeLamp(1690, z); });
+  HR.forEach(z => { makeLamp(280, z); makeLamp(760, z); makeLamp(1240, z); makeLamp(1720, z); });
 
   // ── Фоновые здания за стенами ──
   const bg = (cx,cz,w,h,d,c) => makeBuilding(cx,cz,w,h,d,c);

@@ -546,11 +546,28 @@ function updateGameState(state) {
     if (!cars[p.id]) {
       const group = buildCar(p.index, p.id === myId, p.isBot);
       scene.add(group);
-      cars[p.id] = { group };
+      cars[p.id] = { group, tiltX: 0, tiltZ: 0, tiltVX: 0, tiltVZ: 0, prevHp: MAX_HP };
     }
     const car = cars[p.id];
     car.group.position.set(p.x, 0, p.y);
     car.group.rotation.y = -p.angle;
+
+    // Деформация кузова по мере урона
+    const dmg = 1 - p.hp / MAX_HP;
+    car.group.scale.y = Math.max(0.50, 1 - dmg * 0.42);
+    car.group.scale.x = 1 + dmg * 0.22;
+    car.group.scale.z = 1 + dmg * 0.14;
+
+    // Удар → импульс опрокидывания
+    if (p.hp < car.prevHp) {
+      const drop = car.prevHp - p.hp;
+      if (drop > 2) {
+        const mag = Math.min(drop * 0.022, 0.55);
+        car.tiltVX += (Math.random() - 0.5) * mag * 6;
+        car.tiltVZ += (Math.random() - 0.5) * mag * 6;
+      }
+    }
+    car.prevHp = p.hp;
 
     updateHpBar(car.group, p.hp / MAX_HP);
 
@@ -667,6 +684,32 @@ function sendInput() {
   }
 }
 
+// ── Физика наклона/опрокидывания ─────────────────────────────────────────────
+function updateCarTilts(dt) {
+  for (const id in cars) {
+    const car = cars[id];
+    if (!car.tiltVX && !car.tiltVZ && !car.tiltX && !car.tiltZ) continue;
+
+    const hpR = (car.prevHp ?? MAX_HP) / MAX_HP;
+    // При большом HP пружина сильная (быстро встаёт), при малом — слабая (остаётся лежать)
+    const spring = hpR > 0.40 ? 5.5 : hpR > 0.18 ? 1.6 : 0.25;
+    const damp   = 4.0;
+
+    car.tiltVX += (-car.tiltX * spring - car.tiltVX * damp) * dt;
+    car.tiltVZ += (-car.tiltZ * spring - car.tiltVZ * damp) * dt;
+    car.tiltX  += car.tiltVX * dt;
+    car.tiltZ  += car.tiltVZ * dt;
+
+    // Максимальный угол: здоровая машина — 45°, повреждённая — до 180° (на крыше)
+    const maxT = hpR > 0.30 ? 0.78 : Math.PI;
+    car.tiltX = Math.max(-maxT, Math.min(maxT, car.tiltX));
+    car.tiltZ = Math.max(-maxT, Math.min(maxT, car.tiltZ));
+
+    car.group.rotation.x = car.tiltX;
+    car.group.rotation.z = car.tiltZ;
+  }
+}
+
 // ── Главный цикл ─────────────────────────────────────────────────────────────
 let prevTime = performance.now();
 
@@ -678,6 +721,7 @@ function animate() {
   sendInput();
   updateParticles(dt);
   updateDebris(dt);
+  updateCarTilts(dt);
   renderer.render(scene, camera);
 }
 

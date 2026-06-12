@@ -232,7 +232,7 @@ function gameLoop() {
 
     if (p.hp <= 0 && !p.dead) {
       p.dead = true; p.hp = 0;
-      io.emit('explosion', { x: p.x, y: p.y });
+      io.emit('explosion', { x: p.x, y: p.y, index: p.index });
     }
   }
 
@@ -259,8 +259,8 @@ function gameLoop() {
         a.x -= nx * overlap; a.y -= ny * overlap;
         b.x += nx * overlap; b.y += ny * overlap;
 
-        if (a.hp <= 0 && !a.dead) { a.dead = true; a.hp = 0; io.emit('explosion', { x: a.x, y: a.y }); }
-        if (b.hp <= 0 && !b.dead) { b.dead = true; b.hp = 0; io.emit('explosion', { x: b.x, y: b.y }); }
+        if (a.hp <= 0 && !a.dead) { a.dead = true; a.hp = 0; io.emit('explosion', { x: a.x, y: a.y, index: a.index }); }
+        if (b.hp <= 0 && !b.dead) { b.dead = true; b.hp = 0; io.emit('explosion', { x: b.x, y: b.y, index: b.index }); }
       }
     }
   }

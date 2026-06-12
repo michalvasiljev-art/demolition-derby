@@ -6,7 +6,7 @@ const CAR_COLORS     = [0xff3333, 0x2277ff, 0x33cc33, 0xffcc00];
 const CAR_COLOR_STRS = ['#ff5555', '#4499ff', '#55ee55', '#ffdd00'];
 
 let socket, myId, myIndex, gameReady = false, myBoosted = false;
-const cars = {}, keys = {}, particles = [];
+const cars = {}, keys = {}, particles = [], debris = [];
 const lastInput = { up: false, down: false, left: false, right: false };
 let lastUpTime = 0, lastDownTime = 0, upReleased = true, downReleased = true;
 
@@ -429,6 +429,89 @@ function spawnHitSpark(x, z) {
   }
 }
 
+// ── Обломки (постоянные запчасти) ────────────────────────────────────────────
+function updateDebris(dt) {
+  for (const d of debris) {
+    if (d.settled) continue;
+    d.vy -= 420 * dt;
+    d.mesh.position.x += d.vx * dt;
+    d.mesh.position.y += d.vy * dt;
+    d.mesh.position.z += d.vz * dt;
+    d.mesh.rotation.x += d.rx * dt;
+    d.mesh.rotation.y += d.ry * dt;
+    d.mesh.rotation.z += d.rz * dt;
+
+    if (d.mesh.position.y <= d.groundY) {
+      d.mesh.position.y = d.groundY;
+      if (Math.abs(d.vy) > 22) {
+        d.vy *= -0.28;
+        d.vx *= 0.70; d.vz *= 0.70;
+        d.rx *= 0.55; d.ry *= 0.55; d.rz *= 0.55;
+      } else {
+        d.vy = 0;
+        const sf = Math.pow(0.10, dt), rf = Math.pow(0.04, dt);
+        d.vx *= sf; d.vz *= sf;
+        d.rx *= rf; d.ry *= rf; d.rz *= rf;
+        if (Math.abs(d.vx) < 2 && Math.abs(d.vz) < 2) d.settled = true;
+      }
+    }
+    if (d.mesh.position.x < 8)         { d.mesh.position.x = 8;         d.vx =  Math.abs(d.vx) * 0.4; }
+    if (d.mesh.position.x > ARENA_W-8) { d.mesh.position.x = ARENA_W-8; d.vx = -Math.abs(d.vx) * 0.4; }
+    if (d.mesh.position.z < 8)         { d.mesh.position.z = 8;         d.vz =  Math.abs(d.vz) * 0.4; }
+    if (d.mesh.position.z > ARENA_H-8) { d.mesh.position.z = ARENA_H-8; d.vz = -Math.abs(d.vz) * 0.4; }
+  }
+}
+
+function clearDebris() {
+  for (const d of debris) scene.remove(d.mesh);
+  debris.length = 0;
+}
+
+function spawnCarDebris(x, z, carIdx) {
+  const color = CAR_COLORS[carIdx] ?? 0xaaaaaa;
+
+  const addPart = (geo, matColor, transparent, groundY, hSpd, upMin, upMax) => {
+    const mat = transparent
+      ? new THREE.MeshLambertMaterial({ color: matColor, transparent: true, opacity: 0.7 })
+      : new THREE.MeshLambertMaterial({ color: matColor });
+    const angle = Math.random() * Math.PI * 2;
+    const sp = hSpd * (0.5 + Math.random() * 0.9);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x + (Math.random()-.5)*18, 14 + Math.random()*8, z + (Math.random()-.5)*18);
+    mesh.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
+    scene.add(mesh);
+    debris.push({
+      mesh, groundY, settled: false,
+      vx: Math.cos(angle) * sp,
+      vy: upMin + Math.random() * (upMax - upMin),
+      vz: Math.sin(angle) * sp,
+      rx: (Math.random()-.5) * 9,
+      ry: (Math.random()-.5) * 9,
+      rz: (Math.random()-.5) * 9,
+    });
+  };
+
+  const wheelCount = (carIdx === 1 || carIdx === 3) ? 6 : 4;
+  for (let i = 0; i < wheelCount; i++)
+    addPart(new THREE.CylinderGeometry(7, 7, 8, 14), 0x111111, false, 7, 190, 170, 310);
+
+  for (let i = 0; i < 4; i++)
+    addPart(new THREE.BoxGeometry(16+Math.random()*22, 5, 10+Math.random()*16), color, false, 2.5, 230, 200, 330);
+
+  addPart(new THREE.BoxGeometry(30, 10, 22), color, false, 5, 185, 230, 350);
+
+  for (let i = 0; i < 2; i++)
+    addPart(new THREE.BoxGeometry(7, 8, 30), 0x222222, false, 4, 165, 155, 275);
+
+  for (let i = 0; i < 3; i++)
+    addPart(new THREE.BoxGeometry(13, 2, 11), 0x88aacc, true, 1, 200, 185, 305);
+
+  addPart(new THREE.BoxGeometry(15, 14, 15), 0x444444, false, 7, 145, 150, 240);
+
+  for (let i = 0; i < 3; i++)
+    addPart(new THREE.BoxGeometry(8+Math.random()*8, 3, 6+Math.random()*8), 0x333333, false, 1.5, 175, 140, 260);
+}
+
 function spawnExhaustFlame(x, z, angle) {
   const rd = 38;
   const ex = x - Math.cos(angle) * rd;
@@ -504,7 +587,11 @@ function setupSocket() {
 
   socket.on('gameState', updateGameState);
 
-  socket.on('explosion', (data) => { spawnExplosion(data.x, data.y); Sound.playExplosion(); });
+  socket.on('explosion', (data) => {
+    spawnExplosion(data.x, data.y);
+    spawnCarDebris(data.x, data.y, data.index ?? 0);
+    Sound.playExplosion();
+  });
 
   socket.on('hitSpark', (data) => {
     if (data.big) spawnHitSpark(data.x, data.y);
@@ -528,6 +615,7 @@ function setupSocket() {
     myBoosted = false; turboEl.classList.remove('active');
     winText.textContent = '';
     countdownText.style.display = 'none';
+    clearDebris();
   });
 }
 
@@ -589,6 +677,7 @@ function animate() {
   prevTime  = now;
   sendInput();
   updateParticles(dt);
+  updateDebris(dt);
   renderer.render(scene, camera);
 }
 

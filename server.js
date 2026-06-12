@@ -20,10 +20,19 @@ const FRICTION_PER_SEC = 0.15;
 
 const COLOR_NAMES = ['#ff4444', '#4488ff', '#44dd44', '#ffcc00'];
 const SPAWN = [
-  { x: 250, y: 220, angle: 0 },
-  { x: 1350, y: 680, angle: Math.PI },
-  { x: 1350, y: 220, angle: Math.PI },
-  { x: 250, y: 680, angle: 0 },
+  { x: 130, y: 130, angle: Math.PI * 0.25 },
+  { x: 1470, y: 770, angle: Math.PI * 1.25 },
+  { x: 1470, y: 130, angle: Math.PI * 0.75 },
+  { x: 130, y: 770, angle: Math.PI * 1.75 },
+];
+
+// Прямоугольные препятствия (здания) — cx/cy = центр, hw/hd = полуразмеры
+const OBSTACLES = [
+  { x: 390,  y: 190, hw: 210, hd: 140 }, // TL квартал
+  { x: 1210, y: 190, hw: 210, hd: 140 }, // TR квартал
+  { x: 390,  y: 710, hw: 210, hd: 140 }, // BL квартал
+  { x: 1210, y: 710, hw: 210, hd: 140 }, // BR квартал
+  { x: 800,  y: 450, hw: 90,  hd: 90  }, // центральный блок
 ];
 
 const BOT_IDS = ['bot_0', 'bot_1', 'bot_2', 'bot_3'];
@@ -32,6 +41,29 @@ let players = {};
 let humanSlots = new Set(); // which slot indices are humans
 let winnerEmitted = false;
 let lastTime = Date.now();
+
+function collideCarObstacle(p, obs) {
+  const cx = Math.max(obs.x - obs.hw, Math.min(p.x, obs.x + obs.hw));
+  const cy = Math.max(obs.y - obs.hd, Math.min(p.y, obs.y + obs.hd));
+  const dx = p.x - cx, dy = p.y - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < CAR_RADIUS && dist > 0.001) {
+    const nx = dx / dist, ny = dy / dist;
+    p.x += nx * (CAR_RADIUS - dist);
+    p.y += ny * (CAR_RADIUS - dist);
+    const dot = p.vx * nx + p.vy * ny;
+    if (dot < 0) {
+      const spd = Math.abs(dot);
+      if (spd > 60) p.hp -= spd * 0.055;
+      p.vx -= dot * nx * 1.3;
+      p.vy -= dot * ny * 1.3;
+      if (p.hp <= 0 && !p.dead) {
+        p.dead = true; p.hp = 0;
+        io.emit('explosion', { x: p.x, y: p.y, index: p.index });
+      }
+    }
+  }
+}
 
 function angleDiff(a, b) {
   let d = b - a;
@@ -229,6 +261,7 @@ function gameLoop() {
     if (p.x > ARENA_W - CAR_RADIUS)  { const h = Math.abs(p.vx); if (h > 60) p.hp -= h * 0.06; p.x = ARENA_W - CAR_RADIUS; p.vx = -Math.abs(p.vx) * 0.35; }
     if (p.y < CAR_RADIUS)            { const h = Math.abs(p.vy); if (h > 60) p.hp -= h * 0.06; p.y = CAR_RADIUS; p.vy = Math.abs(p.vy) * 0.35; }
     if (p.y > ARENA_H - CAR_RADIUS)  { const h = Math.abs(p.vy); if (h > 60) p.hp -= h * 0.06; p.y = ARENA_H - CAR_RADIUS; p.vy = -Math.abs(p.vy) * 0.35; }
+    for (const obs of OBSTACLES) collideCarObstacle(p, obs);
 
     if (p.hp <= 0 && !p.dead) {
       p.dead = true; p.hp = 0;

@@ -74,30 +74,37 @@ const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
 const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
 const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
 
-// ── Город-арена ──────────────────────────────────────────────────────────────
+// ── Городская карта ───────────────────────────────────────────────────────────
 {
-  const bldWinMat = new THREE.MeshLambertMaterial({ color: 0xffeebb, emissive: 0xffcc44, emissiveIntensity: 0.3 });
-  const bldRoofMat = lMat(0x2a2a2a);
+  const winMat  = new THREE.MeshLambertMaterial({ color: 0xffeebb, emissive: 0xffcc44, emissiveIntensity: 0.3 });
+  const roofMat = lMat(0x222222);
+  const curbMat = lMat(0xbbbbbb);
+  const whiteM  = lMat(0xdddddd);
+  const yellowM = lMat(0xffcc00);
 
+  // Здание с окнами (все 4 стороны)
   const makeBuilding = (cx, cz, w, h, d, wallC) => {
     const g = new THREE.Group();
     g.add(_box(w, h, d, lMat(wallC), 0, h/2, 0, true));
-    g.add(_box(w+8, 8, d+8, bldRoofMat, 0, h+4, 0));
-    // Парапет
-    g.add(_box(w+4, 10, 5, lMat(0xaaaaaa), 0, h+5,  d/2+2.5));
-    g.add(_box(w+4, 10, 5, lMat(0xaaaaaa), 0, h+5, -d/2-2.5));
-    g.add(_box(5, 10, d, lMat(0xaaaaaa), -w/2-2.5, h+5, 0));
-    g.add(_box(5, 10, d, lMat(0xaaaaaa),  w/2+2.5, h+5, 0));
-    // Окна (спереди и сзади)
-    const rows = Math.max(1, Math.floor((h - 20) / 48));
-    const cols = Math.max(2, Math.floor(w / 55));
+    g.add(_box(w+8, 8, d+8, roofMat, 0, h+4, 0));
+    g.add(_box(w+4, 10, 5, curbMat, 0, h+5,  d/2+3));
+    g.add(_box(w+4, 10, 5, curbMat, 0, h+5, -d/2-3));
+    g.add(_box(5, 10, d, curbMat, -w/2-3, h+5, 0));
+    g.add(_box(5, 10, d, curbMat,  w/2+3, h+5, 0));
+    const rows = Math.max(1, Math.floor((h-20)/45));
+    const colsW = Math.max(2, Math.floor(w/50));
+    const colsD = Math.max(1, Math.floor(d/50));
     for (let r = 0; r < rows; r++) {
-      const wy = 28 + r * 48;
-      if (wy > h - 15) continue;
-      for (let c = 0; c < cols; c++) {
-        const wx = -w/2 + (c + 0.5) * (w / cols);
-        g.add(_box(20, 16, 1.5, bldWinMat, wx, wy,  d/2 + 0.8));
-        g.add(_box(20, 16, 1.5, bldWinMat, wx, wy, -d/2 - 0.8));
+      const wy = 25 + r * 45; if (wy > h-14) continue;
+      for (let c = 0; c < colsW; c++) {
+        const wx = -w/2 + (c+0.5)*(w/colsW);
+        g.add(_box(18,14,1.5, winMat, wx, wy,  d/2+1));
+        g.add(_box(18,14,1.5, winMat, wx, wy, -d/2-1));
+      }
+      for (let c = 0; c < colsD; c++) {
+        const wz = -d/2 + (c+0.5)*(d/colsD);
+        g.add(_box(1.5,14,18, winMat, -w/2-1, wy, wz));
+        g.add(_box(1.5,14,18, winMat,  w/2+1, wy, wz));
       }
     }
     g.position.set(cx, 0, cz);
@@ -106,93 +113,101 @@ const wheelMat = lMat(0x111111), hubMat = lMat(0x666666);
 
   const makeLamp = (x, z) => {
     const g = new THREE.Group();
-    g.add(_cyl(3, 88, 8, lMat(0x999999), 0, 44, 0));
-    g.add(_box(30, 5, 5, lMat(0x777777), 13, 89, 0));
-    g.add(_box(14, 9, 14, new THREE.MeshBasicMaterial({ color: 0xffffd0 }), 24, 85, 0));
+    g.add(_cyl(3, 90, 8, lMat(0x999999), 0, 45, 0));
+    g.add(_box(32, 5, 5, lMat(0x777777), 14, 91, 0));
+    g.add(_box(14, 9, 14, new THREE.MeshBasicMaterial({ color: 0xffffd0 }), 25, 87, 0));
     g.position.set(x, 0, z);
     scene.add(g);
   };
 
-  // Асфальт
-  const flr = _box(5000, 1, 5000, lMat(0x1c1c1c), ARENA_W/2, -0.5, ARENA_H/2);
+  // ── Асфальт ──
+  const flr = _box(6000, 1, 6000, lMat(0x191919), ARENA_W/2, -0.5, ARENA_H/2);
   flr.receiveShadow = true;
   scene.add(flr);
 
-  // Тротуары по периметру
-  const swW = 88, swMat = lMat(0x707070);
-  scene.add(_box(ARENA_W, 1.5, swW, swMat, ARENA_W/2, 0, swW/2));
-  scene.add(_box(ARENA_W, 1.5, swW, swMat, ARENA_W/2, 0, ARENA_H - swW/2));
-  scene.add(_box(swW, 1.5, ARENA_H - swW*2, swMat, swW/2, 0, ARENA_H/2));
-  scene.add(_box(swW, 1.5, ARENA_H - swW*2, swMat, ARENA_W - swW/2, 0, ARENA_H/2));
+  // ── Тротуары вдоль зданий ──
+  const swMat = lMat(0x686868);
+  // Вокруг TL и BL (x: 0–600)
+  scene.add(_box(600, 1.5, 30, swMat, 300, 0, 330));   // юг TL блока
+  scene.add(_box(600, 1.5, 30, swMat, 300, 0, 570));   // север BL блока
+  scene.add(_box(30, 1.5, 660, swMat, 600, 0, 450));   // восток левых блоков
+  // Вокруг TR и BR (x: 1000–1600)
+  scene.add(_box(600, 1.5, 30, swMat, 1300, 0, 330));
+  scene.add(_box(600, 1.5, 30, swMat, 1300, 0, 570));
+  scene.add(_box(30, 1.5, 660, swMat, 1000, 0, 450));
+  // Центральный блок
+  scene.add(_box(250, 1.5, 30, swMat, 800, 0, 360));
+  scene.add(_box(250, 1.5, 30, swMat, 800, 0, 540));
+  scene.add(_box(30, 1.5, 150, swMat, 715, 0, 450));
+  scene.add(_box(30, 1.5, 150, swMat, 885, 0, 450));
 
-  // Бордюры
-  const curbM = lMat(0xbbbbbb);
-  scene.add(_box(ARENA_W - swW*2, 9, 6, curbM, ARENA_W/2, 4, swW+3));
-  scene.add(_box(ARENA_W - swW*2, 9, 6, curbM, ARENA_W/2, 4, ARENA_H-swW-3));
-  scene.add(_box(6, 9, ARENA_H - swW*2, curbM, swW+3, 4, ARENA_H/2));
-  scene.add(_box(6, 9, ARENA_H - swW*2, curbM, ARENA_W-swW-3, 4, ARENA_H/2));
+  // ── Бордюры ──
+  [[600, 6, 300, 330], [600, 6, 300, 570],
+   [6, 660, 600, 450], [600, 6, 1300, 330],
+   [600, 6, 1300, 570],[6, 660, 1000, 450]
+  ].forEach(([w,d,x,z]) => scene.add(_box(w, 9, d, curbMat, x, 4, z)));
 
-  // Дорожная разметка
-  const whiteM = lMat(0xdddddd), yellowM = lMat(0xffcc00);
-  for (let x = swW+110; x < ARENA_W-swW-40; x += 170)
-    scene.add(_box(100, 1.6, 5, whiteM, x, 0, ARENA_H/2));
-  for (let z = swW+110; z < ARENA_H-swW-40; z += 170)
-    scene.add(_box(5, 1.6, 100, whiteM, ARENA_W/2, 0, z));
-  scene.add(_box(ARENA_W-swW*2-20, 1.6, 4, yellowM, ARENA_W/2, 0, swW+12));
-  scene.add(_box(ARENA_W-swW*2-20, 1.6, 4, yellowM, ARENA_W/2, 0, ARENA_H-swW-12));
-  scene.add(_box(4, 1.6, ARENA_H-swW*2-20, yellowM, swW+12, 0, ARENA_H/2));
-  scene.add(_box(4, 1.6, ARENA_H-swW*2-20, yellowM, ARENA_W-swW-12, 0, ARENA_H/2));
+  // ── Дорожная разметка ──
+  // Горизонтальная дорога z=330-570 (ширина 240)
+  for (let x = 50; x < ARENA_W-30; x += 160)
+    scene.add(_box(90, 1.6, 5, whiteM, x, 0, 450));
+  // Вертикальная дорога x=600-1000 (ширина 400)
+  for (let z = 50; z < 330; z += 140)
+    scene.add(_box(5, 1.6, 80, whiteM, 800, 0, z));
+  for (let z = 570; z < ARENA_H-30; z += 140)
+    scene.add(_box(5, 1.6, 80, whiteM, 800, 0, z));
+  // Жёлтые разделительные
+  scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, 330));
+  scene.add(_box(ARENA_W, 1.6, 4, yellowM, ARENA_W/2, 0, 570));
+  scene.add(_box(4, 1.6, 330, yellowM, 600, 0, 165));
+  scene.add(_box(4, 1.6, 330, yellowM, 1000, 0, 165));
+  scene.add(_box(4, 1.6, 330, yellowM, 600, 0, 735));
+  scene.add(_box(4, 1.6, 330, yellowM, 1000, 0, 735));
 
-  // ЗДАНИЯ — северная сторона (за северной стеной)
-  makeBuilding(155,  -85,  245, 195, 115, 0x8b6a4a);
-  makeBuilding(488,  -75,  205, 260, 105, 0x5a6a7a);
-  makeBuilding(800,  -95,  195, 340, 125, 0xa09070);
-  makeBuilding(1112, -75,  215, 240, 105, 0x7a6a8a);
-  makeBuilding(1435, -85,  255, 185, 115, 0x8b4a4a);
+  // ── ГЛАВНЫЕ ЗДАНИЯ (совпадают с физическими препятствиями сервера) ──
+  makeBuilding(390,  190, 420, 200, 280, 0x8b6a4a);  // TL
+  makeBuilding(1210, 190, 420, 230, 280, 0x5a6a7a);  // TR
+  makeBuilding(390,  710, 420, 180, 280, 0x6a7a5a);  // BL
+  makeBuilding(1210, 710, 420, 210, 280, 0x8a5a5a);  // BR
+  makeBuilding(800,  450, 180, 110, 180, 0x888888);  // центр
 
-  // ЗДАНИЯ — южная сторона
-  makeBuilding(215,  ARENA_H+85,  225, 165, 115, 0x5a7a5a);
-  makeBuilding(600,  ARENA_H+78,  205, 210, 105, 0x7a8a5a);
-  makeBuilding(975,  ARENA_H+85,  215, 185, 115, 0x5a5a8a);
-  makeBuilding(1375, ARENA_H+82,  235, 155, 115, 0x4a7a7a);
-
-  // ЗДАНИЯ — западная сторона
-  makeBuilding(-88, 205,  115, 235, 265, 0x7a6a5a);
-  makeBuilding(-82, 658,  105, 185, 225, 0x5a7a6a);
-
-  // ЗДАНИЯ — восточная сторона
-  makeBuilding(ARENA_W+88, 205,  115, 255, 265, 0x8a5a5a);
-  makeBuilding(ARENA_W+82, 658,  105, 205, 225, 0x6a8a5a);
-
-  // ЗДАНИЯ — угловые (крупные)
-  makeBuilding(-88,  -88,  195, 295, 195, 0x9a5a4a);
-  makeBuilding(ARENA_W+88, -88,  195, 270, 195, 0x4a5a8a);
-  makeBuilding(-88,  ARENA_H+88, 195, 230, 195, 0x4a8a5a);
-  makeBuilding(ARENA_W+88, ARENA_H+88, 195, 250, 195, 0x8a4a5a);
-
-  // Фонари внутри арены
+  // ── Фонари вдоль улиц ──
   [
-    [280, 100], [680, 100], [1100, 100], [1470, 100],
-    [280, ARENA_H-100], [680, ARENA_H-100], [1100, ARENA_H-100], [1470, ARENA_H-100],
-    [105, 280], [105, 620],
-    [ARENA_W-105, 280], [ARENA_W-105, 620],
+    [630, 310], [800, 310], [970, 310],
+    [630, 590], [800, 590], [970, 590],
+    [180, 350], [180, 450], [180, 550],
+    [1420, 350],[1420, 450],[1420, 550],
+    [390, 50],  [800, 50],  [1210, 50],
+    [390, 850], [800, 850], [1210, 850],
   ].forEach(([x, z]) => makeLamp(x, z));
 
-  // Физические барьеры (бетон + оранжевые полосы)
-  const wallH = 42, wallT = 22;
+  // ── Задние здания (фон за стенами) ──
+  const bg = (cx,cz,w,h,d,c) => makeBuilding(cx,cz,w,h,d,c);
+  bg(155, -85, 240, 210, 110, 0x9a7a5a); bg(490, -80, 200, 270, 100, 0x5a6a8a);
+  bg(800, -95, 190, 350, 120, 0xa09070); bg(1110,-80, 210, 250, 100, 0x7a6a9a);
+  bg(1440,-85, 250, 190, 110, 0x9a4a4a);
+  bg(200, ARENA_H+85, 220,160,110, 0x5a8a6a); bg(600,ARENA_H+80,200,200,100, 0x7a9a5a);
+  bg(1000,ARENA_H+85,210,190,110, 0x5a5a9a); bg(1400,ARENA_H+82,230,150,110, 0x4a8a8a);
+  bg(-90, 200, 110,240,270, 0x7a6a5a); bg(-85, 660, 100,190,230, 0x5a7a6a);
+  bg(ARENA_W+90,200,110,260,270, 0x9a5a5a); bg(ARENA_W+85,660,100,210,230, 0x6a9a5a);
+  bg(-90,-90,190,300,190, 0x9a5a4a); bg(ARENA_W+90,-90,190,275,190, 0x4a5a9a);
+  bg(-90,ARENA_H+90,190,235,190, 0x4a9a5a); bg(ARENA_W+90,ARENA_H+90,190,255,190, 0x9a4a5a);
+
+  // ── Периметральные стены-барьеры ──
+  const wallH = 40, wallT = 22;
   const barrMat = lMat(0x888888);
-  const orMat = new THREE.MeshLambertMaterial({ color: 0xff7700, emissive: 0xff4400, emissiveIntensity: 0.35 });
+  const orMat = new THREE.MeshLambertMaterial({ color: 0xff7700, emissive: 0xff4400, emissiveIntensity: 0.4 });
   [
-    [[ARENA_W + wallT*2, wallH, wallT], [ARENA_W/2, wallH/2, -wallT/2]],
-    [[ARENA_W + wallT*2, wallH, wallT], [ARENA_W/2, wallH/2, ARENA_H + wallT/2]],
-    [[wallT, wallH, ARENA_H],           [-wallT/2, wallH/2, ARENA_H/2]],
-    [[wallT, wallH, ARENA_H],           [ARENA_W + wallT/2, wallH/2, ARENA_H/2]],
+    [[ARENA_W+wallT*2, wallH, wallT], [ARENA_W/2, wallH/2, -wallT/2]],
+    [[ARENA_W+wallT*2, wallH, wallT], [ARENA_W/2, wallH/2, ARENA_H+wallT/2]],
+    [[wallT, wallH, ARENA_H],         [-wallT/2, wallH/2, ARENA_H/2]],
+    [[wallT, wallH, ARENA_H],         [ARENA_W+wallT/2, wallH/2, ARENA_H/2]],
   ].forEach(([s, p]) => {
     const wm = new THREE.Mesh(new THREE.BoxGeometry(...s), barrMat);
     wm.position.set(...p); wm.castShadow = true; wm.receiveShadow = true;
     scene.add(wm);
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(s[0], 10, s[2]+1), orMat);
-    stripe.position.set(p[0], p[1] + wallH/2 - 5, p[2]);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(s[0],10,s[2]+1), orMat);
+    stripe.position.set(p[0], p[1]+wallH/2-5, p[2]);
     scene.add(stripe);
   });
 }

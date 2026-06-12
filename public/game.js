@@ -213,11 +213,14 @@ function makeLabel(text, colorStr) {
 
 // ── HP-бар ───────────────────────────────────────────────────────────────────
 function addHpBar(group, yPos = 52) {
-  group.add(_box(64, 4, 8, new THREE.MeshBasicMaterial({ color: 0x222222 }), 0, yPos, 0));
+  const bg = _box(64, 4, 8, new THREE.MeshBasicMaterial({ color: 0x222222 }), 0, yPos, 0);
+  bg._isHpBar = true;
+  group.add(bg);
   const geo = new THREE.BoxGeometry(60, 3, 6);
   geo.translate(30, 0, 0);
   const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x00dd00 }));
   fill.position.set(-30, yPos, 0);
+  fill._isHpBar = true;
   group.add(fill);
   group._hpFill = fill;
   group._hpMat  = fill.material;
@@ -567,6 +570,7 @@ function updateGameState(state) {
         const mag = Math.min(drop * 0.05, 1.4);
         car.tiltVX += (Math.random() - 0.5) * mag * 8;
         car.tiltVZ += (Math.random() - 0.5) * mag * 8;
+        deformCarParts(car.inner, drop);
       }
     }
     car.prevHp = p.hp;
@@ -686,6 +690,22 @@ function sendInput() {
   }
 }
 
+// ── Деформация деталей кузова ────────────────────────────────────────────────
+function deformCarParts(inner, damage) {
+  const parts = inner.children.filter(c => c.isMesh && !c._isHpBar);
+  if (!parts.length) return;
+  const count = Math.min(Math.ceil(damage * 0.6), 5);
+  const bend = Math.min(damage * 0.006, 0.18);
+  for (let i = 0; i < count; i++) {
+    const p = parts[Math.floor(Math.random() * parts.length)];
+    p.rotation.x += (Math.random() - 0.5) * bend * 5;
+    p.rotation.z += (Math.random() - 0.5) * bend * 5;
+    p.position.x  += (Math.random() - 0.5) * bend * 12;
+    p.position.y  -= Math.random() * bend * 8;
+    p.position.z  += (Math.random() - 0.5) * bend * 12;
+  }
+}
+
 // ── Физика наклона/опрокидывания ─────────────────────────────────────────────
 function updateCarTilts(dt) {
   for (const id in cars) {
@@ -707,6 +727,10 @@ function updateCarTilts(dt) {
 
     car.inner.rotation.x = car.tiltX;
     car.inner.rotation.z = car.tiltZ;
+
+    // Подъём над землёй чтобы не уходить под текстуру
+    const lift = 15 * (Math.abs(Math.sin(car.tiltX)) + Math.abs(Math.sin(car.tiltZ)));
+    car.inner.position.y = lift;
   }
 }
 
